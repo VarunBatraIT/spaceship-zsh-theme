@@ -10,12 +10,18 @@ SHUNIT_PARENT=$0
 
 oneTimeSetUp() {
   export TERM="xterm-256color"
+  export HOME="$SHUNIT_TMPDIR/home"
+  mkdir -p "$HOME"
+  export GIT_AUTHOR_NAME="Spaceship Test"
+  export GIT_AUTHOR_EMAIL="spaceship@example.com"
+  export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+  export GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
 
   SPACESHIP_PROMPT_FIRST_PREFIX_SHOW=true
   SPACESHIP_PROMPT_ADD_NEWLINE=false
   SPACESHIP_PROMPT_ORDER=(dir)
 
-  source spaceship.zsh
+  source "spaceship.zsh"
 }
 
 setUp() {
@@ -50,7 +56,7 @@ test_dir_home() {
   cd ~
 
   local expected="%{%B%}in %{%b%}%{%B%F{$SPACESHIP_DIR_COLOR}%}%(4~||)%3~%{%b%f%}%{%B%} %{%b%}"
-  local actual="$(spaceship_prompt)"
+  local actual="$(spaceship::testkit::render_prompt)"
 
   assertEquals "render dir" "$expected" "$actual"
 }
@@ -59,7 +65,7 @@ test_dir_color() {
   SPACESHIP_DIR_COLOR=blue
 
   local expected="%{%B%}in %{%b%}%{%B%F{$SPACESHIP_DIR_COLOR}%}%(4~||)%3~%{%b%f%}%{%B%} %{%b%}"
-  local actual="$(spaceship_prompt)"
+  local actual="$(spaceship::testkit::render_prompt)"
 
   assertEquals "render dir with custom color" "$expected" "$actual"
 }
@@ -68,8 +74,8 @@ test_dir_prefix() {
   SPACESHIP_DIR_PREFIX='prefix'
   SPACESHIP_DIR_SUFFIX=''
 
-  local expected="%{%B%}$SPACESHIP_DIR_PREFIX%{%b%}%{%B%F{cyan}%}%(4~||)%3~%{%b%f%}%{%B%}$SPACESHIP_DIR_SUFFIX%{%b%}"
-  local actual="$(spaceship_prompt)"
+  local expected="%{%B%}$SPACESHIP_DIR_PREFIX%{%b%}%{%B%F{cyan}%}%(4~||)%3~%{%b%f%}"
+  local actual="$(spaceship::testkit::render_prompt)"
 
   assertEquals "render dir with prefix" "$expected" "$actual"
 }
@@ -78,8 +84,8 @@ test_dir_suffix() {
   SPACESHIP_DIR_PREFIX=''
   SPACESHIP_DIR_SUFFIX='suffix'
 
-  local expected="%{%B%}$SPACESHIP_DIR_PREFIX%{%b%}%{%B%F{cyan}%}%(4~||)%3~%{%b%f%}%{%B%}$SPACESHIP_DIR_SUFFIX%{%b%}"
-  local actual="$(spaceship_prompt)"
+  local expected="%{%B%F{cyan}%}%(4~||)%3~%{%b%f%}%{%B%}$SPACESHIP_DIR_SUFFIX%{%b%}"
+  local actual="$(spaceship::testkit::render_prompt)"
 
   assertEquals "render dir with suffix" "$expected" "$actual"
 }
@@ -88,7 +94,7 @@ test_dir_trunc() {
   SPACESHIP_DIR_TRUNC=2
 
   local expected="%{%B%}in %{%b%}%{%B%F{cyan}%}%($((SPACESHIP_DIR_TRUNC+1))~||)%$SPACESHIP_DIR_TRUNC~%{%b%f%}%{%B%} %{%b%}"
-  local actual="$(spaceship_prompt)"
+  local actual="$(spaceship::testkit::render_prompt)"
 
   assertEquals "render truncated dir" "$expected" "$actual"
 }
@@ -98,12 +104,13 @@ test_dir_trunc_git() {
   mkdir -p $REPO/dir4/dir5
 
   cd $REPO
+  command git config init.defaultBranch >/dev/null
   command git init >/dev/null
 
   cd $REPO/dir4/dir5
 
   local expected="%{%B%}in %{%b%}%{%B%F{cyan}%}dir3/dir4/dir5%{%b%f%}%{%B%} %{%b%}"
-  local actual="$(spaceship_prompt)"
+  local actual="$(spaceship::testkit::render_prompt)"
 
   assertEquals "render truncated dir in git repos" "$expected" "$actual"
 }
@@ -112,6 +119,10 @@ test_dir_trunc_git_submodule() {
   local FOLDER="$SHUNIT_TMPDIR/dir/trunc_git_submodule"
   local REPO="$FOLDER/dir1/dir2/dir3"
   local SUBMODULE="$FOLDER/dir1/dir2/dir4"
+
+  # Allow adding submodules via file transport
+  # See: https://bugs.launchpad.net/ubuntu/+source/git/+bug/1993586
+  command git config --global protocol.file.allow always
 
   mkdir -p $REPO
   mkdir -p $SUBMODULE
@@ -132,7 +143,7 @@ test_dir_trunc_git_submodule() {
   cd dir4
 
   local expected="%{%B%}in %{%b%}%{%B%F{cyan}%}dir4%{%b%f%}%{%B%} %{%b%}"
-  local actual="$(spaceship_prompt)"
+  local actual="$(spaceship::testkit::render_prompt)"
 
   assertEquals "render submodule dir in the git repo" "$expected" "$actual"
 }
